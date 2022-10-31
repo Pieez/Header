@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -25,6 +26,44 @@ namespace WpfApp1
             InitializeComponent();
             MainFrame.Navigate(new HotelPage());
             Manager.MainFrame = MainFrame;
+        }
+
+        private void ImportsTours()
+        {
+            var filedata = File.ReadAllLines(@"\\main\RDP\43П\СмолинИА\Desktop\Toures\Типы.txt");
+            var images = Directory.GetFiles(@"\\main\RDP\43П\СмолинИА\Desktop\HotelImage");
+
+            foreach (var line in filedata)
+            {
+                var data = line.Split('\t');
+
+                var tempTour = new Tour
+                {
+                    Name = data[0].Replace("\"", ""),
+                    TicketCount = int.Parse(data[2]),
+                    Price = decimal.Parse(data[3]),
+                    IsActual = (data[4] == "0") ? false : true
+                };
+
+                foreach (var tourType in data[5].Split(new string[] {","}, StringSplitOptions.RemoveEmptyEntries))
+                {
+                    var currentType = TourBasesEntities.GetContext().Type.ToList().FirstOrDefault(p => p.Name == tourType);
+                    if (currentType != null)
+                        tempTour.Type.Add(currentType);
+                }
+
+                try
+                {
+                    tempTour.ImagePreview = File.ReadAllBytes(images.FirstOrDefault(p => p.Contains(tempTour.Name)));
+                }
+                catch(Exception ex)
+                {
+                    Console.WriteLine(ex.Message);
+                }
+
+                TourBasesEntities.GetContext().Tour.Add(tempTour);
+                TourBasesEntities.GetContext().SaveChanges();
+            }
         }
 
         private void BtnBack_Click(object sender, RoutedEventArgs e)
